@@ -137,3 +137,25 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# --- Evidence.dev & DuckDB Specifics ---
+
+# Evidence internal cache and temporary data
+.evidence/
+.data-sources/
+queries/
+
+# DuckDB database files 
+# (These will be large since you have 10GB of logs)
+*.duckdb
+*.duckdb.wal
+*.db
+*.db.wal
+
+# Local Parquet exports
+# You want GitHub to build these, not host your local copies
+*.parquet
+
+# Evidence local build output
+# This is what GitHub Actions will generate and push to Pages
+build/
