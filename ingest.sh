@@ -1,7 +1,11 @@
 #!/bin/bash
-set -a
-source .env
-set +a
+
+# Load .env if it exists (local dev), skip in CI
+if [ -f .env ]; then
+  set -a
+  source .env
+  set +a
+fi
 
 mkdir -p sources/bcf_fw
 envsubst < ingest_trends.sql | duckdb

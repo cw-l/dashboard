@@ -2,6 +2,8 @@
 title: Security Events Dashboard
 ---
 
+> ⚠️ **Disclaimer:** Data is provided as-is without warranty or guarantee of accuracy. Users should exercise caution when interpreting and acting on this information. If you use or reference this data, please attribute back to the original source.
+
 ```sql top_countries
 SELECT 
   country,
@@ -16,17 +18,17 @@ ORDER BY total DESC
 LIMIT 10
 ```
 
-```sql top_ips
+```sql bottom_countries
 SELECT 
-  ip,
+  country,
   COUNT(*) as total
 FROM (
-  SELECT COALESCE(clientIP, ip) as ip
+  SELECT COALESCE(clientCountryName, country) as country
   FROM bcf_fw.trends
-  WHERE COALESCE(clientIP, ip) IS NOT NULL
+  WHERE COALESCE(clientCountryName, country) IS NOT NULL
 )
-GROUP BY ip
-ORDER BY total DESC
+GROUP BY country
+ORDER BY total ASC
 LIMIT 10
 ```
 
@@ -52,12 +54,38 @@ FROM (
   SELECT COALESCE(clientRequestPath, path) as path
   FROM bcf_fw.trends
   WHERE COALESCE(clientRequestPath, path) IS NOT NULL
+  AND COALESCE(clientRequestPath, path) != '/'
 )
 GROUP BY path
 ORDER BY total DESC
 LIMIT 10
 ```
 
+```sql bottom_paths
+SELECT 
+  path,
+  COUNT(*) as total
+FROM (
+  SELECT COALESCE(clientRequestPath, path) as path
+  FROM bcf_fw.trends
+  WHERE COALESCE(clientRequestPath, path) IS NOT NULL
+)
+GROUP BY path
+ORDER BY total ASC
+LIMIT 10
+```
+
+```sql top_paths_tor
+SELECT 
+  COALESCE(clientRequestPath, path) as path,
+  COUNT(*) as total
+FROM bcf_fw.trends
+WHERE COALESCE(clientRequestPath, path) IS NOT NULL
+AND country = 'T1'
+GROUP BY COALESCE(clientRequestPath, path)
+ORDER BY total DESC
+LIMIT 10
+```
 
 ## Top Countries
 
@@ -68,9 +96,14 @@ LIMIT 10
   title="Top 10 Countries"
 />
 
-## Top IPs
+## Bottom Countries
 
-<DataTable data={top_ips}/>
+<BarChart 
+  data={bottom_countries} 
+  x=country 
+  y=total 
+  title="Bottom 10 Countries"
+/>
 
 ## Top User Agents
 
@@ -80,4 +113,14 @@ LIMIT 10
 
 <DataTable data={top_paths}/>
 
+## Bottom Request Paths
+
+<DataTable data={bottom_paths}/>
+
+## Top Paths by Tor Exits
+
+<DataTable data={top_paths_tor}/>
+
+---
+*© 2026 BCF SECURITY. All rights reserved.*
 <LastRefreshed prefix="Last updated:" slot="footer"/>
