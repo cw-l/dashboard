@@ -2,7 +2,7 @@ name: Build & Deploy Dashboard
 
 on:
   schedule:
-    - cron: '0 */2 * * *'  # Every 2 hours
+    - cron: '0 0,2,4,6,8,10,12,14,16,18,20,22 * * *'
   push:
     branches:
       - main
