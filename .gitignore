@@ -159,3 +159,5 @@ queries/
 # Evidence local build output
 # This is what GitHub Actions will generate and push to Pages
 build/
+
+.env

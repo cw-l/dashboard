@@ -1,0 +1,4 @@
+name: bcf_fw
+type: duckdb
+options:
+  filename: ':memory:'
