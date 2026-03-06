@@ -31,6 +31,7 @@ jobs:
           unzip duckdb_cli-linux-amd64.zip
           sudo mv duckdb /usr/local/bin/
           duckdb --version
+          pip install awscli --break-system-packages
 
       - name: Run ingest script
         env:
@@ -38,6 +39,8 @@ jobs:
           EVIDENCE_S3_SECRET_ACCESS_KEY: ${{ secrets.EVIDENCE_S3_SECRET_ACCESS_KEY }}
           EVIDENCE_S3_ENDPOINT: ${{ secrets.EVIDENCE_S3_ENDPOINT }}
           EVIDENCE_S3_BUCKET_NAME: ${{ secrets.EVIDENCE_S3_BUCKET_NAME }}
+          MALICIOUS_S3_ACCESS_KEY_ID: ${{ secrets.MALICIOUS_S3_ACCESS_KEY_ID }}
+          MALICIOUS_S3_SECRET_ACCESS_KEY: ${{ secrets.MALICIOUS_S3_SECRET_ACCESS_KEY }}
         run: |
           chmod +x ingest.sh
           ./ingest.sh

@@ -19,3 +19,30 @@ COPY (
     ignore_errors=true
   )
 ) TO 'sources/bcf_fw/trends.parquet' (FORMAT PARQUET);
+
+-- Stage 1: Extract high value paths with requesting IPs, ASN, Country and hit counts
+COPY (
+  SELECT
+    clientRequestPath,
+    clientIP,
+    clientAsn,
+    clientCountryName,
+    COUNT(*) AS hit_count
+  FROM read_parquet('sources/bcf_fw/trends.parquet')
+  WHERE clientRequestPath IS NOT NULL
+AND clientRequestPath NOT IN (
+      SELECT '/' || trim(column0)
+      FROM read_csv(
+        'https://raw.githubusercontent.com/cw-l/SecLists/master/Discovery/Web-Content/raft-large-files.txt',
+        header=false, columns={'column0': 'VARCHAR'}, delim='\n'
+      )
+      UNION
+      SELECT '/' || trim(column0)
+      FROM read_csv(
+        'https://raw.githubusercontent.com/cw-l/SecLists/master/Discovery/Web-Content/raft-large-directories.txt',
+        header=false, columns={'column0': 'VARCHAR'}, delim='\n'
+      )
+    )  
+  GROUP BY clientRequestPath, clientIP, clientAsn, clientCountryName
+  ORDER BY hit_count DESC
+) TO 'malicious_paths.parquet' (FORMAT PARQUET);
