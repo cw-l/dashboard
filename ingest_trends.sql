@@ -25,7 +25,7 @@ COPY (
   SELECT *
   FROM read_parquet('sources/bcf_fw/trends.parquet')
   WHERE clientRequestPath IS NOT NULL
-    AND trim(clientRequestPath) != '/'
+    AND regexp_replace(clientRequestPath, '\s+', '') != '/'
     AND clientRequestPath NOT IN (
       SELECT '/' || trim(column0)
       FROM read_csv(
