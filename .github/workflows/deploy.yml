@@ -47,6 +47,7 @@ jobs:
 
       - name: Run Evidence sources
         env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
           EVIDENCE_S3_ACCESS_KEY_ID: ${{ secrets.EVIDENCE_S3_ACCESS_KEY_ID }}
           EVIDENCE_S3_SECRET_ACCESS_KEY: ${{ secrets.EVIDENCE_S3_SECRET_ACCESS_KEY }}
           EVIDENCE_S3_ENDPOINT: ${{ secrets.EVIDENCE_S3_ENDPOINT }}
@@ -54,6 +55,8 @@ jobs:
         run: npm run sources
 
       - name: Build static site
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
         run: npm run build
 
       - name: Remove oversized WASM

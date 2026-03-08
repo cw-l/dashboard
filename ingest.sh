@@ -1,4 +1,6 @@
 #!/bin/bash
+set -e
+
 # Load .env if it exists (local dev), skip in CI
 if [ -f .env ]; then
   set -a

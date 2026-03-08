@@ -1,7 +1,19 @@
 ---
 title: Security Events Dashboard
 ---
+
 > ⚠️ **Disclaimer:** Data is provided as-is without warranty or guarantee of accuracy. Users should exercise caution when interpreting and acting on this information. If you use or reference this data, please attribute back to the original source.
+
+```sql fw_actions
+SELECT
+  action AS fw_action,
+  COUNT(*) AS total
+FROM bcf_fw.trends
+WHERE action IS NOT NULL
+  AND action != ''
+GROUP BY action
+ORDER BY total DESC
+```
 ```sql top_countries
 SELECT 
   isoCountryName AS country,
@@ -95,6 +107,48 @@ GROUP BY clientRequestPath
 ORDER BY total DESC
 LIMIT 10
 ```
+```sql ip_class
+SELECT
+  clientIPClass AS ip_class,
+  COUNT(*) AS total
+FROM bcf_fw.trends
+WHERE clientIPClass IS NOT NULL
+  AND clientIPClass != ''
+GROUP BY clientIPClass
+ORDER BY total DESC
+```
+```sql http_methods
+SELECT
+  clientRequestHTTPMethodName AS http_method_name,
+  COUNT(*) AS total
+FROM bcf_fw.trends
+WHERE clientRequestHTTPMethodName IS NOT NULL
+  AND clientRequestHTTPMethodName != ''
+GROUP BY clientRequestHTTPMethodName
+ORDER BY total DESC
+```
+```sql http_protocol_versions
+SELECT
+  clientRequestHTTPProtocol AS http_protocol_version,
+  COUNT(*) AS total
+FROM bcf_fw.trends
+WHERE clientRequestHTTPProtocol IS NOT NULL
+  AND clientRequestHTTPProtocol != ''
+GROUP BY clientRequestHTTPProtocol
+ORDER BY total DESC
+```
+
+
+## Actions
+<ECharts config={
+  {
+    tooltip: { trigger: 'item' },
+    series: [{
+      type: 'pie',
+      data: fw_actions.map(d => ({ name: d.fw_action, value: d.total }))
+    }]
+  }
+}/>
 
 ## Top 10 Countries
 <BarChart 
@@ -169,3 +223,36 @@ LIMIT 10
 
 ## Top Paths by Tor Exits
 <DataTable data={top_paths_tor}/>
+
+## IP Classes
+<ECharts config={
+  {
+    tooltip: { trigger: 'item' },
+    series: [{
+      type: 'pie',
+      data: ip_class.map(d => ({ name: d.ip_class, value: d.total }))
+    }]
+  }
+}/>
+
+## HTTP Methods
+<ECharts config={
+  {
+    tooltip: { trigger: 'item' },
+    series: [{
+      type: 'pie',
+      data: http_methods.map(d => ({ name: d.http_method_name, value: d.total }))
+    }]
+  }
+}/>
+
+## HTTP Protocol
+<ECharts config={
+  {
+    tooltip: { trigger: 'item' },
+    series: [{
+      type: 'pie',
+      data: http_protocol_versions.map(d => ({ name: d.http_protocol_version, value: d.total }))
+    }]
+  }
+}/>

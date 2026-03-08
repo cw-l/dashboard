@@ -23,20 +23,11 @@ CREATE TEMP TABLE country_lookup AS
     ('T1', 'Tor Network')
   ) AS cf(country_code, country_name);
 
-CREATE TEMP TABLE asn_lookup AS
-  SELECT
-    column2 AS asn,
-    column3 AS asn_name
-  FROM read_csv_auto(
-    'https://raw.githubusercontent.com/sapics/ip-location-db/main/asn/asn-ipv4.csv',
-    header=false
-  );
-
 COPY (
   SELECT
     f.*,
     COALESCE(c.country_name, f.clientCountryName) AS isoCountryName,
-    COALESCE(a.asn_name, f.clientAsn) AS clientAsnName,
+    f.clientASNDescription AS clientAsnName,
     CASE
       WHEN userAgent IS NULL OR trim(userAgent) = '' THEN 'Unknown'
       WHEN userAgent ILIKE '%claudebot%' OR userAgent ILIKE '%claude-searchbot%' THEN 'Bot'
@@ -65,13 +56,16 @@ COPY (
       WHEN userAgent ILIKE '%mobile%' OR userAgent ILIKE '%iphone%' OR userAgent ILIKE '%android%' THEN 'Mobile'
       ELSE 'Desktop'
     END AS uaDevice    
-  FROM read_json_auto(
-    's3://${EVIDENCE_S3_BUCKET_NAME}/**/*.json',
-    union_by_name=true,
-    ignore_errors=true
+  FROM (
+    SELECT *, ROW_NUMBER() OVER (PARTITION BY rayName ORDER BY datetime) AS rn
+    FROM read_json_auto(
+      's3://${EVIDENCE_S3_BUCKET_NAME}/**/*.json',
+      union_by_name=true,
+      ignore_errors=true
+    )
   ) f
-  LEFT JOIN country_lookup c ON c.country_code = f.clientCountryName
-  LEFT JOIN asn_lookup a ON a.asn = TRY_CAST(f.clientAsn AS INTEGER)
+  LEFT JOIN country_lookup c ON c.country_code = f.clientCountryName  
+  WHERE f.rn = 1
 ) TO 'sources/bcf_fw/trends.parquet' (FORMAT PARQUET);
 
 -- Stage 1: Extract high value paths not in SecLists
