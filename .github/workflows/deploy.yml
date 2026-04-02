@@ -42,8 +42,8 @@ jobs:
           MALICIOUS_S3_ACCESS_KEY_ID: ${{ secrets.MALICIOUS_S3_ACCESS_KEY_ID }}
           MALICIOUS_S3_SECRET_ACCESS_KEY: ${{ secrets.MALICIOUS_S3_SECRET_ACCESS_KEY }}
           TIF_R2_BUCKET_NAME: ${{ secrets.TIF_R2_BUCKET_NAME }}
-          TIF_R2_ACCESS_KEY: ${{ secrets.TIF_R2_R_ACCESS_KEY }}
-          TIF_R2_SECRET_KEY: ${{ secrets.TIF_R2_R_SECRET_KEY }}
+          TIF_R2_R_ACCESS_KEY: ${{ secrets.TIF_R2_R_ACCESS_KEY }}
+          TIF_R2_R_SECRET_KEY: ${{ secrets.TIF_R2_R_SECRET_KEY }}
         run: |
           chmod +x ingest.sh
           ./ingest.sh
