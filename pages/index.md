@@ -37,6 +37,26 @@ GROUP BY isoCountryName
 ORDER BY total ASC
 LIMIT 10
 ```
+```sql top_cities
+SELECT 
+  city,
+  COUNT(*) as total
+FROM bcf_fw.trends
+WHERE city IS NOT NULL
+GROUP BY city
+ORDER BY total DESC
+LIMIT 10
+```
+```sql bottom_cities
+SELECT 
+  city,
+  COUNT(*) as total
+FROM bcf_fw.trends
+WHERE city IS NOT NULL
+GROUP BY city
+ORDER BY total ASC
+LIMIT 10
+```
 ```sql top_asn
 SELECT 
   clientAsnName AS asn,
@@ -54,6 +74,26 @@ SELECT
 FROM bcf_fw.trends
 WHERE clientAsnName IS NOT NULL
 GROUP BY clientAsnName
+ORDER BY total ASC
+LIMIT 10
+```
+```sql top_isp
+SELECT 
+  isp,
+  COUNT(*) as total
+FROM bcf_fw.trends
+WHERE isp IS NOT NULL
+GROUP BY isp
+ORDER BY total DESC
+LIMIT 10
+```
+```sql bottom_isp
+SELECT 
+  isp,
+  COUNT(*) as total
+FROM bcf_fw.trends
+WHERE isp IS NOT NULL
+GROUP BY isp
 ORDER BY total ASC
 LIMIT 10
 ```
@@ -176,6 +216,15 @@ WHERE usage_type IS NOT NULL
 GROUP BY usage_type
 ORDER BY unique_ips DESC
 ```
+```sql int_domain_name_assoc_ip_range
+SELECT
+  ipDomain,
+  COUNT(*) AS total
+FROM bcf_fw.trends
+WHERE ipDomain IS NOT NULL
+GROUP BY ipDomain
+ORDER BY ipDomain DESC
+```
 
 
 ## Actions
@@ -205,6 +254,22 @@ ORDER BY unique_ips DESC
   swapXY=true
 />
 
+## Top 10 Cities
+<BarChart 
+  data={top_cities} 
+  x=city 
+  y=total
+  swapXY=true
+/>
+
+## Bottom 10 Cities
+<BarChart 
+  data={bottom_cities} 
+  x=city 
+  y=total 
+  swapXY=true
+/>
+
 ## Top 10 ASNs
 <BarChart 
   data={top_asn} 
@@ -218,6 +283,22 @@ ORDER BY unique_ips DESC
   data={bottom_asn} 
   x=asn 
   y=total 
+  swapXY=true
+/>
+
+## Top 10 ISPs
+<BarChart 
+  data={top_isp} 
+  x=isp 
+  y=total
+  swapXY=true
+/>
+
+## Bottom 10 ISPs
+<BarChart 
+  data={bottom_isp} 
+  x=isp 
+  y=total
   swapXY=true
 />
 
@@ -328,6 +409,17 @@ ORDER BY unique_ips DESC
     series: [{
       type: 'pie',
       data: unique_ips_by_usage_type.map(d => ({ name: d.usage_type, value: d.unique_ips }))
+    }]
+  }
+}/>
+
+## Internet Domain Name Associated with IP Range
+<ECharts config={
+  {
+    tooltip: { trigger: 'item' },
+    series: [{
+      type: 'pie',
+      data: int_domain_name_assoc_ip_range.map(d => ({ name: d.ipDomain, value: d.total }))
     }]
   }
 }/>
