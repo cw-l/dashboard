@@ -7,8 +7,8 @@ LOAD httpfs;
 INSTALL maxmind FROM community;
 LOAD maxmind;
 
-SET s3_access_key_id = '${EVIDENCE_S3_ACCESS_KEY_ID}';
-SET s3_secret_access_key = '${EVIDENCE_S3_SECRET_ACCESS_KEY}';
+SET s3_access_key_id = '${LOGS_R2_R_ACCESS_KEY}';
+SET s3_secret_access_key = '${LOGS_R2_R_SECRET_KEY}';
 SET s3_endpoint = '${R2_ENDPOINT}';
 SET s3_url_style = 'vhost';
 SET s3_region = 'auto';
@@ -48,7 +48,7 @@ SELECT DISTINCT
     NULLIF(mmdb_record('${PX11_MMDB_PATH}', clientIP, '')::json ->> 'last_seen', '-') AS last_seen
 
 FROM read_json_auto(
-    's3://${EVIDENCE_S3_BUCKET_NAME}/**/*.json',
+    's3://${LOGS_R2_BUCKET_NAME}/**/*.json',
     union_by_name=true,
     ignore_errors=true
 );
@@ -108,7 +108,7 @@ COPY (
   FROM (
     SELECT *, ROW_NUMBER() OVER (PARTITION BY rayName ORDER BY datetime) AS rn
     FROM read_json_auto(
-      's3://${EVIDENCE_S3_BUCKET_NAME}/**/*.json',
+      's3://${LOGS_R2_BUCKET_NAME}/**/*.json',
       union_by_name=true,
       ignore_errors=true
     )

@@ -37,10 +37,10 @@ envsubst < ingest_trends.sql | duckdb
 # ── Upload malicious_paths.parquet to R2 ─────────────────────────────────────
 echo "Uploading malicious_paths.parquet..."
 
-export AWS_ACCESS_KEY_ID=${MALICIOUS_S3_ACCESS_KEY_ID}
-export AWS_SECRET_ACCESS_KEY=${MALICIOUS_S3_SECRET_ACCESS_KEY}
+export AWS_ACCESS_KEY_ID=${LOGS_R2_RW_ACCESS_KEY}
+export AWS_SECRET_ACCESS_KEY=${LOGS_R2_RW_SECRET_KEY}
 
-aws s3 cp malicious_paths.parquet s3://${EVIDENCE_S3_BUCKET_NAME}/malicious_paths.parquet \
+aws s3 cp malicious_paths.parquet s3://${LOGS_R2_BUCKET_NAME}/malicious_paths.parquet \
   --endpoint-url https://${R2_ENDPOINT} \
   --region auto
 
