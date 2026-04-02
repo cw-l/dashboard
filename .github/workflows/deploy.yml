@@ -39,8 +39,8 @@ jobs:
           LOGS_R2_R_ACCESS_KEY: ${{ secrets.LOGS_R2_R_ACCESS_KEY }}
           LOGS_R2_R_SECRET_KEY: ${{ secrets.LOGS_R2_R_SECRET_KEY }}
           LOGS_R2_BUCKET_NAME: ${{ secrets.LOGS_R2_BUCKET_NAME }}
-          LOGS_R2_RW_ACCESS_KEY_ID: ${{ secrets.LOGS_R2_RW_ACCESS_KEY_ID }}
-          LOGS_R2_RW_SECRET_ACCESS_KEY: ${{ secrets.LOGS_R2_RW_SECRET_ACCESS_KEY }}
+          LOGS_R2_RW_ACCESS_KEY: ${{ secrets.LOGS_R2_RW_ACCESS_KEY }}
+          LOGS_R2_RW_SECRET_KEY: ${{ secrets.LOGS_R2_RW_SECRET_KEY }}
           TIF_R2_BUCKET_NAME: ${{ secrets.TIF_R2_BUCKET_NAME }}
           TIF_R2_R_ACCESS_KEY: ${{ secrets.TIF_R2_R_ACCESS_KEY }}
           TIF_R2_R_SECRET_KEY: ${{ secrets.TIF_R2_R_SECRET_KEY }}
