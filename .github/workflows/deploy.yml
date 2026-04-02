@@ -35,12 +35,15 @@ jobs:
 
       - name: Run ingest script
         env:
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
           EVIDENCE_S3_ACCESS_KEY_ID: ${{ secrets.EVIDENCE_S3_ACCESS_KEY_ID }}
           EVIDENCE_S3_SECRET_ACCESS_KEY: ${{ secrets.EVIDENCE_S3_SECRET_ACCESS_KEY }}
-          EVIDENCE_S3_ENDPOINT: ${{ secrets.EVIDENCE_S3_ENDPOINT }}
           EVIDENCE_S3_BUCKET_NAME: ${{ secrets.EVIDENCE_S3_BUCKET_NAME }}
           MALICIOUS_S3_ACCESS_KEY_ID: ${{ secrets.MALICIOUS_S3_ACCESS_KEY_ID }}
           MALICIOUS_S3_SECRET_ACCESS_KEY: ${{ secrets.MALICIOUS_S3_SECRET_ACCESS_KEY }}
+          TIF_R2_BUCKET_NAME: ${{ secrets.TIF_R2_BUCKET_NAME }}
+          TIF_R2_ACCESS_KEY: ${{ secrets.TIF_R2_ACCESS_KEY }}
+          TIF_R2_SECRET_KEY: ${{ secrets.TIF_R2_SECRET_KEY }}
         run: |
           chmod +x ingest.sh
           ./ingest.sh
@@ -50,7 +53,7 @@ jobs:
           NODE_OPTIONS: "--max-old-space-size=4096"
           EVIDENCE_S3_ACCESS_KEY_ID: ${{ secrets.EVIDENCE_S3_ACCESS_KEY_ID }}
           EVIDENCE_S3_SECRET_ACCESS_KEY: ${{ secrets.EVIDENCE_S3_SECRET_ACCESS_KEY }}
-          EVIDENCE_S3_ENDPOINT: ${{ secrets.EVIDENCE_S3_ENDPOINT }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
           EVIDENCE_S3_BUCKET_NAME: ${{ secrets.EVIDENCE_S3_BUCKET_NAME }}
         run: npm run sources
 

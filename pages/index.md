@@ -4,6 +4,9 @@ title: Security Events Dashboard
 
 > ⚠️ **Disclaimer:** Data is provided as-is without warranty or guarantee of accuracy. Users should exercise caution when interpreting and acting on this information. If you use or reference this data, please attribute back to the original source.
 
+> This site uses the IP2Location LITE database for <a href="https://www.ip2location.com" target="_blank">IP geolocation</a>.
+
+
 ```sql fw_actions
 SELECT
   action AS fw_action,
@@ -137,6 +140,42 @@ WHERE clientRequestHTTPProtocol IS NOT NULL
 GROUP BY clientRequestHTTPProtocol
 ORDER BY total DESC
 ```
+```sql unique_ips_per_day
+SELECT
+  DATE_TRUNC('day', datetime::TIMESTAMP) AS day,
+  COUNT(DISTINCT clientIP) AS unique_ips
+FROM bcf_fw.trends
+WHERE datetime IS NOT NULL
+GROUP BY day
+ORDER BY day ASC
+```
+```sql unique_ips_per_hour
+SELECT
+  DATE_TRUNC('hour', datetime::TIMESTAMP) AS hour,
+  COUNT(DISTINCT clientIP) AS unique_ips
+FROM bcf_fw.trends
+WHERE datetime IS NOT NULL
+GROUP BY hour
+ORDER BY hour ASC
+```
+```sql usage_type
+SELECT
+  usage_type,
+  COUNT(*) AS total
+FROM bcf_fw.trends
+WHERE usage_type IS NOT NULL
+GROUP BY usage_type
+ORDER BY total DESC
+```
+```sql unique_ips_by_usage_type
+SELECT
+  usage_type,
+  COUNT(DISTINCT clientIP) AS unique_ips
+FROM bcf_fw.trends
+WHERE usage_type IS NOT NULL
+GROUP BY usage_type
+ORDER BY unique_ips DESC
+```
 
 
 ## Actions
@@ -253,6 +292,42 @@ ORDER BY total DESC
     series: [{
       type: 'pie',
       data: http_protocol_versions.map(d => ({ name: d.http_protocol_version, value: d.total }))
+    }]
+  }
+}/>
+
+## Unique IPs per Day
+<LineChart 
+  data={unique_ips_per_day} 
+  x=day 
+  y=unique_ips
+/>
+
+## Unique IPs per Hour
+<LineChart 
+  data={unique_ips_per_hour} 
+  x=hour 
+  y=unique_ips
+/>
+
+## Usage Types
+<ECharts config={
+  {
+    tooltip: { trigger: 'item' },
+    series: [{
+      type: 'pie',
+      data: usage_type.map(d => ({ name: d.usage_type, value: d.total }))
+    }]
+  }
+}/>
+
+## Unique IPs by Usage Type
+<ECharts config={
+  {
+    tooltip: { trigger: 'item' },
+    series: [{
+      type: 'pie',
+      data: unique_ips_by_usage_type.map(d => ({ name: d.usage_type, value: d.unique_ips }))
     }]
   }
 }/>
