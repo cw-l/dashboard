@@ -36,11 +36,11 @@ jobs:
       - name: Run ingest script
         env:
           R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
-          EVIDENCE_S3_ACCESS_KEY_ID: ${{ secrets.EVIDENCE_S3_ACCESS_KEY_ID }}
-          EVIDENCE_S3_SECRET_ACCESS_KEY: ${{ secrets.EVIDENCE_S3_SECRET_ACCESS_KEY }}
-          EVIDENCE_S3_BUCKET_NAME: ${{ secrets.EVIDENCE_S3_BUCKET_NAME }}
-          MALICIOUS_S3_ACCESS_KEY_ID: ${{ secrets.MALICIOUS_S3_ACCESS_KEY_ID }}
-          MALICIOUS_S3_SECRET_ACCESS_KEY: ${{ secrets.MALICIOUS_S3_SECRET_ACCESS_KEY }}
+          LOGS_R2_R_ACCESS_KEY: ${{ secrets.LOGS_R2_R_ACCESS_KEY }}
+          LOGS_R2_R_SECRET_KEY: ${{ secrets.LOGS_R2_R_SECRET_KEY }}
+          LOGS_R2_BUCKET_NAME: ${{ secrets.LOGS_R2_BUCKET_NAME }}
+          LOGS_R2_RW_ACCESS_KEY_ID: ${{ secrets.LOGS_R2_RW_ACCESS_KEY_ID }}
+          LOGS_R2_RW_SECRET_ACCESS_KEY: ${{ secrets.LOGS_R2_RW_SECRET_ACCESS_KEY }}
           TIF_R2_BUCKET_NAME: ${{ secrets.TIF_R2_BUCKET_NAME }}
           TIF_R2_R_ACCESS_KEY: ${{ secrets.TIF_R2_R_ACCESS_KEY }}
           TIF_R2_R_SECRET_KEY: ${{ secrets.TIF_R2_R_SECRET_KEY }}
@@ -51,10 +51,10 @@ jobs:
       - name: Run Evidence sources
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
-          EVIDENCE_S3_ACCESS_KEY_ID: ${{ secrets.EVIDENCE_S3_ACCESS_KEY_ID }}
-          EVIDENCE_S3_SECRET_ACCESS_KEY: ${{ secrets.EVIDENCE_S3_SECRET_ACCESS_KEY }}
+          LOGS_R2_R_ACCESS_KEY: ${{ secrets.LOGS_R2_R_ACCESS_KEY }}
+          LOGS_R2_R_SECRET_KEY: ${{ secrets.LOGS_R2_R_SECRET_KEY }}
           R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
-          EVIDENCE_S3_BUCKET_NAME: ${{ secrets.EVIDENCE_S3_BUCKET_NAME }}
+          LOGS_R2_BUCKET_NAME: ${{ secrets.LOGS_R2_BUCKET_NAME }}
         run: npm run sources
 
       - name: Build static site
