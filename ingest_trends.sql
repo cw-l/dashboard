@@ -48,7 +48,7 @@ SELECT DISTINCT
     NULLIF(mmdb_record('${PX11_MMDB_PATH}', clientIP, '')::json ->> 'last_seen', '-') AS last_seen
 
 FROM read_json_auto(
-    's3://${LOGS_R2_BUCKET_NAME}/**/*.json',
+    's3://${LOGS_R2_BUCKET_NAME}/firewall/**/*.json',
     union_by_name=true,
     ignore_errors=true
 );
@@ -108,7 +108,7 @@ COPY (
   FROM (
     SELECT *, ROW_NUMBER() OVER (PARTITION BY rayName ORDER BY datetime) AS rn
     FROM read_json_auto(
-      's3://${LOGS_R2_BUCKET_NAME}/**/*.json',
+      's3://${LOGS_R2_BUCKET_NAME}/firewall/**/*.json',
       union_by_name=true,
       ignore_errors=true
     )
