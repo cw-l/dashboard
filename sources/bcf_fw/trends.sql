@@ -1,1 +1,0 @@
-SELECT * FROM read_parquet('sources/bcf_fw/trends.parquet');

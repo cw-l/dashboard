@@ -1,0 +1,1 @@
+SELECT * FROM read_parquet('sources/bcf_nw/http.parquet');

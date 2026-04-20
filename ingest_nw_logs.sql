@@ -17,7 +17,7 @@ SET s3_use_ssl = true;
 -- Stage 0: Build IP enrichment lookup from MMDB files
 -- PX11 takes priority for country/geo; DB11 fills in for non-proxy IPs
 CREATE TEMP TABLE ip_enrichment AS
-SELECT DISTINCT
+SELECT
     clientIP,
 
     -- Geo: prefer PX11 (already has flat country fields), fall back to DB11
@@ -47,13 +47,13 @@ SELECT DISTINCT
     NULLIF(mmdb_record('${PX11_MMDB_PATH}', clientIP, '')::json ->> 'provider', '-') AS provider,
     NULLIF(mmdb_record('${PX11_MMDB_PATH}', clientIP, '')::json ->> 'last_seen', '-') AS last_seen
 
-FROM read_json_auto(
-    's3://${LOGS_R2_BUCKET_NAME}/firewall/**/*.json',
-    union_by_name=true,
-    ignore_errors=true
-);
+FROM (
+    SELECT clientIP FROM read_json_auto('s3://${LOGS_R2_BUCKET_NAME}/firewall/**/*.json', union_by_name=true, ignore_errors=true)
+    UNION
+    SELECT clientIP FROM read_json_auto('s3://${LOGS_R2_BUCKET_NAME}/http/**/*.json', union_by_name=true, ignore_errors=true)
+) ips;
 
--- Stage 1: Deduplicate raw logs, enrich with MMDB data, write trends.parquet
+-- Stage 1: Deduplicate raw logs, enrich with MMDB data, write firewall.parquet
 COPY (
   SELECT
     f.*,
@@ -115,25 +115,62 @@ COPY (
   ) f
   LEFT JOIN ip_enrichment e ON e.clientIP = f.clientIP
   WHERE f.rn = 1
-) TO 'sources/bcf_fw/trends.parquet' (FORMAT PARQUET);
+) TO 'sources/bcf_nw/firewall.parquet' (FORMAT PARQUET);
 
--- Stage 2: Extract high value paths not in SecLists
+-- Stage 2: Enrich with MMDB data, write http.parquet
 COPY (
-  SELECT *
-  FROM read_parquet('sources/bcf_fw/trends.parquet')
-  WHERE clientRequestPath IS NOT NULL
-    AND regexp_replace(clientRequestPath, '\s+', '') != '/'
-    AND clientRequestPath NOT IN (
-      SELECT '/' || trim(column0)
-      FROM read_csv(
-        'https://raw.githubusercontent.com/cw-l/SecLists/master/Discovery/Web-Content/raft-large-files.txt',
-        header=false, columns={'column0': 'VARCHAR'}, delim='\n'
-      )
-      UNION
-      SELECT '/' || trim(column0)
-      FROM read_csv(
-        'https://raw.githubusercontent.com/cw-l/SecLists/master/Discovery/Web-Content/raft-large-directories.txt',
-        header=false, columns={'column0': 'VARCHAR'}, delim='\n'
-      )
-    )
-) TO 'malicious_paths.parquet' (FORMAT PARQUET);
+  SELECT
+    f.*,
+    -- Enriched geo/proxy fields (replacing GitHub CSV country lookup)
+    e.country_name AS isoCountryName,
+    e.country_code AS isoCountryCode,
+    e.region,
+    e.city,
+    e.latitude,
+    e.longitude,
+    e.zip_code,
+    e.time_zone,
+    e.proxy_type,
+    e.isp,
+    e.domain       AS ipDomain,
+    e.usage_type,
+    e.asn,
+    e.as_name,
+    e.threat,
+    e.provider,
+    e.last_seen,
+    -- UA parsing (unchanged)
+    f.clientASNDescription AS clientAsnName,
+    CASE
+      WHEN userAgent IS NULL OR trim(userAgent) = '' THEN 'Unknown'
+      WHEN userAgent ILIKE '%claudebot%' OR userAgent ILIKE '%claude-searchbot%' THEN 'Bot'
+      WHEN userAgent ILIKE '%yabrowser%' THEN 'Yandex'
+      WHEN userAgent ILIKE '%edg/%' OR userAgent ILIKE '%edge/%' THEN 'Edge'
+      WHEN userAgent ILIKE '%opr/%' OR userAgent ILIKE '%opera%' THEN 'Opera'
+      WHEN userAgent ILIKE '%firefox%' THEN 'Firefox'
+      WHEN userAgent ILIKE '%chrome%' THEN 'Chrome'
+      WHEN userAgent ILIKE '%safari%' THEN 'Safari'
+      ELSE 'Unknown'
+    END AS uaBrowser,
+    CASE
+      WHEN userAgent IS NULL OR trim(userAgent) = '' THEN 'Unknown'
+      WHEN userAgent ILIKE '%android%' THEN 'Android'
+      WHEN userAgent ILIKE '%iphone%' OR userAgent ILIKE '%ipad%' THEN 'iOS'
+      WHEN userAgent ILIKE '%mac os x%' OR userAgent ILIKE '%macintosh%' THEN 'macOS'
+      WHEN userAgent ILIKE '%cros%' THEN 'ChromeOS'
+      WHEN userAgent ILIKE '%linux%' THEN 'Linux'
+      WHEN userAgent ILIKE '%windows%' THEN 'Windows'
+      ELSE 'Unknown'
+    END AS uaOS,
+    CASE
+      WHEN userAgent IS NULL OR trim(userAgent) = '' THEN 'Unknown'
+      WHEN userAgent ILIKE '%claudebot%' OR userAgent ILIKE '%claude-searchbot%' THEN 'Bot'
+      WHEN userAgent ILIKE '%ipad%' THEN 'Tablet'
+      WHEN userAgent ILIKE '%mobile%' OR userAgent ILIKE '%iphone%' OR userAgent ILIKE '%android%' THEN 'Mobile'
+      ELSE 'Desktop'
+    END AS uaDevice
+  FROM (
+    SELECT * FROM read_json_auto('s3://${LOGS_R2_BUCKET_NAME}/http/**/*.json', union_by_name=true, ignore_errors=true)
+  ) f
+  LEFT JOIN ip_enrichment e ON e.clientIP = f.clientIP
+) TO 'sources/bcf_nw/http.parquet' (FORMAT PARQUET);

@@ -1,4 +1,4 @@
-name: bcf_fw
+name: bcf_nw
 type: duckdb
 options:
   filename: ':memory:'

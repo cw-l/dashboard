@@ -11,7 +11,7 @@ fi
 mkdir -p sources/bcf_fw
 
 # ── Download MMDB files from threat-intel-feeds R2 bucket ────────────────────
-echo "Downloading MMDB files..."
+echo "Downloading MMDB filess..."
 
 export AWS_ACCESS_KEY_ID=${TIF_R2_R_ACCESS_KEY}
 export AWS_SECRET_ACCESS_KEY=${TIF_R2_R_SECRET_KEY}
@@ -32,20 +32,20 @@ export PX11_MMDB_PATH=/tmp/px11.mmdb
 
 # ── Run DuckDB ────────────────────────────────────────────────────────────────
 echo "Running DuckDB ingest..."
-envsubst < ingest_trends.sql | duckdb
+envsubst < ingest_nw_logs.sql | duckdb
 
 # ── Upload malicious_paths.parquet to R2 ─────────────────────────────────────
-echo "Uploading malicious_paths.parquet..."
+#echo "Uploading malicious_paths.parquet..."
 
-export AWS_ACCESS_KEY_ID=${LOGS_R2_RW_ACCESS_KEY}
-export AWS_SECRET_ACCESS_KEY=${LOGS_R2_RW_SECRET_KEY}
+#export AWS_ACCESS_KEY_ID=${LOGS_R2_RW_ACCESS_KEY}
+#export AWS_SECRET_ACCESS_KEY=${LOGS_R2_RW_SECRET_KEY}
 
-aws s3 cp malicious_paths.parquet s3://${LOGS_R2_BUCKET_NAME}/malicious_paths.parquet \
-  --endpoint-url https://${R2_ENDPOINT} \
-  --region auto
+#aws s3 cp malicious_paths.parquet s3://${LOGS_R2_BUCKET_NAME}/malicious_paths.parquet \
+#  --endpoint-url https://${R2_ENDPOINT} \
+#  --region auto
 
 # ── Cleanup ───────────────────────────────────────────────────────────────────
-rm malicious_paths.parquet
+#rm malicious_paths.parquet
 rm /tmp/db11.mmdb
 rm /tmp/px11.mmdb
 
