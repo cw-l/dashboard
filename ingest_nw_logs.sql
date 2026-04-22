@@ -14,13 +14,11 @@ SET s3_url_style = 'vhost';
 SET s3_region = 'auto';
 SET s3_use_ssl = true;
 
--- Stage 0: Build IP enrichment lookup from MMDB files
+-- Stage 0a: Build IP enrichment lookup from MMDB files
 -- PX11 takes priority for country/geo; DB11 fills in for non-proxy IPs
 CREATE TEMP TABLE ip_enrichment AS
 SELECT
     clientIP,
-
-    -- Geo: prefer PX11 (already has flat country fields), fall back to DB11
     COALESCE(
         NULLIF(mmdb_record('${DB11_MMDB_PATH}', clientIP, '')::json ->> 'country_name', '-'),
         mmdb_record('${DB11_MMDB_PATH}', clientIP, '')::json -> 'country' -> 'names' ->> 'en'
@@ -46,12 +44,53 @@ SELECT
     NULLIF(mmdb_record('${PX11_MMDB_PATH}', clientIP, '')::json ->> 'threat', '-') AS threat,
     NULLIF(mmdb_record('${PX11_MMDB_PATH}', clientIP, '')::json ->> 'provider', '-') AS provider,
     NULLIF(mmdb_record('${PX11_MMDB_PATH}', clientIP, '')::json ->> 'last_seen', '-') AS last_seen
-
 FROM (
     SELECT clientIP FROM read_json_auto('s3://${LOGS_R2_BUCKET_NAME}/firewall/**/*.json', union_by_name=true, ignore_errors=true)
     UNION
     SELECT clientIP FROM read_json_auto('s3://${LOGS_R2_BUCKET_NAME}/http/**/*.json', union_by_name=true, ignore_errors=true)
 ) ips;
+
+
+-- Stage 0b: Confirmed attackers from incidents
+CREATE TEMP TABLE confirmed_attackers AS
+SELECT DISTINCT src_ip AS clientIP
+FROM read_json('s3://${LOGS_R2_BUCKET_NAME}/incident/**/*.json');
+
+-- Credentials for TIF_R2_BUCKET_NAME
+SET s3_access_key_id = '${TIF_R2_R_ACCESS_KEY}';
+SET s3_secret_access_key = '${TIF_R2_R_SECRET_KEY}';
+
+-- Stage 0c: Consensus threat scoring from TXT threat intel feeds
+CREATE TEMP TABLE ip_threat_score AS
+WITH
+    feed_abuseipdb AS (SELECT TRIM(column0) AS ip FROM read_csv('s3://${TIF_R2_BUCKET_NAME}/AbuseIPDB.txt', header=false, columns={column0: 'VARCHAR'})),
+    feed_emergingt AS (SELECT TRIM(column0) AS ip FROM read_csv('s3://${TIF_R2_BUCKET_NAME}/EmergingThreats.txt', header=false, columns={column0: 'VARCHAR'})),
+    feed_blocklist AS (SELECT TRIM(column0) AS ip FROM read_csv('s3://${TIF_R2_BUCKET_NAME}/Blocklist.txt', header=false, columns={column0: 'VARCHAR'})),
+    feed_cinsarmy  AS (SELECT TRIM(column0) AS ip FROM read_csv('s3://${TIF_R2_BUCKET_NAME}/CINSArmyList.txt',  header=false, columns={column0: 'VARCHAR'}))
+SELECT
+    clientIP,
+    (
+        (clientIP IN (SELECT ip FROM feed_abuseipdb))::INTEGER +
+        (clientIP IN (SELECT ip FROM feed_emergingt))::INTEGER +
+        (clientIP IN (SELECT ip FROM feed_blocklist))::INTEGER +
+        (clientIP IN (SELECT ip FROM feed_cinsarmy))::INTEGER +
+        (e.threat IS NOT NULL)::INTEGER +
+        (clientIP IN (SELECT clientIP FROM confirmed_attackers))::INTEGER  -- BCFS
+    ) AS threat_score,
+    NULLIF(ARRAY_TO_STRING(LIST_FILTER([
+        CASE WHEN clientIP IN (SELECT ip FROM feed_abuseipdb) THEN 'AbuseIPDB'       END,
+        CASE WHEN clientIP IN (SELECT ip FROM feed_emergingt) THEN 'EmergingThreats' END,
+        CASE WHEN clientIP IN (SELECT ip FROM feed_blocklist) THEN 'Blocklist'       END,
+        CASE WHEN clientIP IN (SELECT ip FROM feed_cinsarmy)  THEN 'CINSArmyList'    END,
+        CASE WHEN e.threat IS NOT NULL THEN 'IP2Location'                            END,
+        CASE WHEN clientIP IN (SELECT clientIP FROM confirmed_attackers) THEN 'BCFS' END
+    ], x -> x IS NOT NULL), ' | '), '') AS matched_feeds
+FROM (SELECT DISTINCT clientIP, threat FROM ip_enrichment) e;
+
+
+-- Load LOGS_R2_BUCKET_NAME credentials
+SET s3_access_key_id = '${LOGS_R2_R_ACCESS_KEY}';
+SET s3_secret_access_key = '${LOGS_R2_R_SECRET_KEY}';
 
 -- Stage 1: Deduplicate raw logs, enrich with MMDB data, write firewall.parquet
 COPY (
@@ -75,6 +114,9 @@ COPY (
     e.threat,
     e.provider,
     e.last_seen,
+    -- Threat intel consensus
+    t.threat_score,
+    t.matched_feeds,
     -- UA parsing (unchanged)
     f.clientASNDescription AS clientAsnName,
     CASE
@@ -114,6 +156,7 @@ COPY (
     )
   ) f
   LEFT JOIN ip_enrichment e ON e.clientIP = f.clientIP
+  LEFT JOIN ip_threat_score t ON t.clientIP = f.clientIP
   WHERE f.rn = 1
 ) TO 'sources/bcf_nw/firewall.parquet' (FORMAT PARQUET);
 
@@ -139,6 +182,9 @@ COPY (
     e.threat,
     e.provider,
     e.last_seen,
+    -- Threat intel consensus
+    t.threat_score,
+    t.matched_feeds,    
     -- UA parsing (unchanged)
     f.clientASNDescription AS clientAsnName,
     CASE
@@ -173,4 +219,26 @@ COPY (
     SELECT * FROM read_json_auto('s3://${LOGS_R2_BUCKET_NAME}/http/**/*.json', union_by_name=true, ignore_errors=true)
   ) f
   LEFT JOIN ip_enrichment e ON e.clientIP = f.clientIP
+  LEFT JOIN ip_threat_score t ON t.clientIP = f.clientIP
 ) TO 'sources/bcf_nw/http.parquet' (FORMAT PARQUET);
+
+-- Stage 3: Confirmed incidents
+COPY (
+  SELECT
+    to_timestamp(time_of_hit)           AS timestamp,
+    src_ip,
+    is_tor_relay,
+    token_type,
+    alert_status,
+    geo_info->>'country'                AS country,
+    geo_info->>'city'                   AS city,
+    geo_info->>'region'                 AS region,
+    geo_info->>'timezone'               AS timezone,
+    geo_info->'asn'->>'asn'             AS asn,
+    geo_info->'asn'->>'name'            AS asn_name,
+    geo_info->'asn'->>'type'            AS network_type,
+    geo_info->'asn'->>'domain'          AS domain,
+    additional_info->'aws_key_log_data'->>'eventName' AS aws_events
+  FROM read_json('s3://${LOGS_R2_BUCKET_NAME}/incident/**/*.json')
+  ORDER BY time_of_hit DESC
+) TO 'sources/bcf_nw/incidents.parquet' (FORMAT PARQUET);

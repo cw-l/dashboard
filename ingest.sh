@@ -8,7 +8,7 @@ if [ -f .env ]; then
   set +a
 fi
 
-mkdir -p sources/bcf_fw
+mkdir -p sources/bcf_nw
 
 # ── Download MMDB files from threat-intel-feeds R2 bucket ────────────────────
 echo "Downloading MMDB filess..."
