@@ -22,6 +22,7 @@ WHERE
 GROUP BY ALL
 ORDER BY threat_score DESC, hit_count DESC
 ```
+
 ```sql threats
 SELECT 
   datetime AS timestamp, clientRequestPath AS path, 
@@ -32,6 +33,7 @@ WHERE threat_score > 0
 ORDER BY datetime DESC
 LIMIT 50
 ```
+
 ```sql suspicious_ips
 SELECT
   threat_score, matched_feeds, COUNT(*) AS hits, usage_type, 
@@ -42,14 +44,14 @@ WHERE
 GROUP BY ALL
 ORDER BY threat_score DESC, hits DESC
 ```
+
 ```sql incidents
 SELECT
   DATE(timestamp)  AS date,
   token_type       AS incident_type,
   COUNT(*)         AS hits,
-  country,
-  city,
   region,
+  city,
   network_type,
   asn_name,
   is_tor_relay

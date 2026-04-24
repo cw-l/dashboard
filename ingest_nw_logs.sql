@@ -85,7 +85,11 @@ SELECT
         CASE WHEN e.threat IS NOT NULL THEN 'IP2Location'                            END,
         CASE WHEN clientIP IN (SELECT clientIP FROM confirmed_attackers) THEN 'BCFS' END
     ], x -> x IS NOT NULL), ' | '), '') AS matched_feeds
-FROM (SELECT DISTINCT clientIP, threat FROM ip_enrichment) e;
+FROM (
+    SELECT DISTINCT clientIP, threat FROM ip_enrichment
+    UNION
+    SELECT clientIP, NULL AS threat FROM confirmed_attackers
+) e;
 
 
 -- Load LOGS_R2_BUCKET_NAME credentials
@@ -224,21 +228,29 @@ COPY (
 
 -- Stage 3: Confirmed incidents
 COPY (
+  WITH raw AS (
+    SELECT * FROM read_json('s3://${LOGS_R2_BUCKET_NAME}/incident/**/*.json')
+  )
   SELECT
-    to_timestamp(time_of_hit)           AS timestamp,
-    src_ip,
-    is_tor_relay,
-    token_type,
-    alert_status,
-    geo_info->>'country'                AS country,
-    geo_info->>'city'                   AS city,
-    geo_info->>'region'                 AS region,
-    geo_info->>'timezone'               AS timezone,
-    geo_info->'asn'->>'asn'             AS asn,
-    geo_info->'asn'->>'name'            AS asn_name,
-    geo_info->'asn'->>'type'            AS network_type,
-    geo_info->'asn'->>'domain'          AS domain,
-    additional_info->'aws_key_log_data'->>'eventName' AS aws_events
-  FROM read_json('s3://${LOGS_R2_BUCKET_NAME}/incident/**/*.json')
-  ORDER BY time_of_hit DESC
+    to_timestamp(raw.time_of_hit)           AS timestamp,
+    raw.src_ip,
+    raw.is_tor_relay,
+    raw.token_type,
+    raw.alert_status,
+    raw.geo_info->>'org'                    AS org,
+    raw.geo_info->>'country'                AS country,
+    raw.geo_info->>'city'                   AS city,
+    raw.geo_info->>'region'                 AS region,
+    raw.geo_info->>'timezone'               AS timezone,
+    raw.geo_info->>'hostname'               AS hostname,
+    raw.geo_info->'asn'->>'asn'             AS asn,
+    raw.geo_info->'asn'->>'name'            AS asn_name,
+    raw.geo_info->'asn'->>'type'            AS network_type,
+    raw.geo_info->'asn'->>'domain'          AS domain,
+    raw.additional_info->'aws_key_log_data'->>'eventName' AS aws_events,
+    t.threat_score,
+    t.matched_feeds
+  FROM raw
+  LEFT JOIN ip_threat_score t ON t.clientIP = raw.src_ip
+  ORDER BY raw.time_of_hit DESC
 ) TO 'sources/bcf_nw/incidents.parquet' (FORMAT PARQUET);
