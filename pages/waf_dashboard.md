@@ -1,5 +1,5 @@
 ---
-title: Dashboard - WAF 
+title: WAF 
 ---
 
 > This dashboard uses the Cloudflare firewallEventsAdaptive dataset from multiple Zones.

@@ -1,5 +1,5 @@
 ---
-title: Dashboard - Threat Intel 
+title: Threat Intel 
 ---
 
 > This dashboard uses the Cloudflare httpRequestsAdaptive dataset from multiple Zones.

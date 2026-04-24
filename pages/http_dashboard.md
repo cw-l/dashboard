@@ -1,5 +1,5 @@
 ---
-title: Dashboard - HTTP 
+title: HTTP 
 ---
 
 > This dashboard uses the Cloudflare httpRequestsAdaptive dataset from multiple Zones.
