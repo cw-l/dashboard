@@ -47,17 +47,15 @@ ORDER BY threat_score DESC, hits DESC
 
 ```sql incidents
 SELECT
-  DATE(timestamp)  AS date,
-  token_type       AS incident_type,
-  COUNT(*)         AS hits,
+  timestamp         AS date,
+  token_type        AS incident_type,
   region,
   city,
   network_type,
-  asn_name,
-  is_tor_relay
+  asn_name
 FROM bcf_nw.incidents
 GROUP BY ALL
-ORDER BY date DESC, hits DESC
+ORDER BY date DESC
 ```
 
 

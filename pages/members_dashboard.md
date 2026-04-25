@@ -3,7 +3,6 @@ title: Members
 ---
 
 
-
 ```sql attack_path
 SELECT
     REGEXP_REPLACE(src_ip, '(\\d+)\\.(\\d+)\\.\\d+\\.\\d+', '\\1.\\2.x.x') AS attacker,
@@ -30,7 +29,7 @@ SELECT
     LIST(DISTINCT asn_name) AS asn_names,
     BOOL_OR(is_tor_relay) AS any_tor
 FROM bcf_nw.incidents
-GROUP BY src_ip, token_type, threat_score, matched_feeds
+GROUP BY attacker, token, token_type, threat_score, matched_feeds
 ORDER BY first_seen ASC;
 ```
 
@@ -59,7 +58,7 @@ SELECT
     LIST(DISTINCT asn_name) AS asn_names,
     BOOL_OR(is_tor_relay) AS any_tor
 FROM bcf_nw.incidents
-GROUP BY token_type, attacker, threat_score, matched_feeds
+GROUP BY token, token_type, attacker, threat_score, matched_feeds
 ORDER BY incident_type ASC, first_seen ASC, attacker ASC;
 ```
 

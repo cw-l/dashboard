@@ -226,31 +226,38 @@ COPY (
   LEFT JOIN ip_threat_score t ON t.clientIP = f.clientIP
 ) TO 'sources/bcf_nw/http.parquet' (FORMAT PARQUET);
 
--- Stage 3: Confirmed incidents
+-- Stage 3: Confirmed honeytoken incidents
 COPY (
-  WITH raw AS (
-    SELECT * FROM read_json('s3://${LOGS_R2_BUCKET_NAME}/incident/**/*.json')
-  )
   SELECT
-    to_timestamp(raw.time_of_hit)           AS timestamp,
-    raw.src_ip,
-    raw.is_tor_relay,
-    raw.token_type,
-    raw.alert_status,
-    raw.geo_info->>'org'                    AS org,
-    raw.geo_info->>'country'                AS country,
-    raw.geo_info->>'city'                   AS city,
-    raw.geo_info->>'region'                 AS region,
-    raw.geo_info->>'timezone'               AS timezone,
-    raw.geo_info->>'hostname'               AS hostname,
-    raw.geo_info->'asn'->>'asn'             AS asn,
-    raw.geo_info->'asn'->>'name'            AS asn_name,
-    raw.geo_info->'asn'->>'type'            AS network_type,
-    raw.geo_info->'asn'->>'domain'          AS domain,
-    raw.additional_info->'aws_key_log_data'->>'eventName' AS aws_events,
+    strptime(time, '%Y-%m-%d %H:%M:%S (UTC)')              AS timestamp,
+    src_ip,
+    token,
+    token_type,
+    channel,
+    memo,
+    -- Manual-only fields (NULL for webhook records)
+    is_tor_relay,
+    alert_status,
+    -- Geo (nested under additional_data)
+    additional_data->'geo_info'->>'country'                AS country,
+    additional_data->'geo_info'->>'city'                   AS city,
+    additional_data->'geo_info'->>'region'                 AS region,
+    additional_data->'geo_info'->>'timezone'               AS timezone,
+    additional_data->'geo_info'->>'hostname'               AS hostname,
+    additional_data->'geo_info'->'asn'->>'asn'             AS asn,
+    additional_data->'geo_info'->'asn'->>'name'            AS asn_name,
+    additional_data->'geo_info'->'asn'->>'type'            AS network_type,
+    additional_data->'geo_info'->'asn'->>'domain'          AS domain,
+    additional_data->>'useragent'                          AS useragent,
+    additional_data->'request_headers'->>'Referer'         AS referer,
+    additional_data->'additional_info'->'aws_key_log_data'->>'eventName' AS aws_events,
     t.threat_score,
     t.matched_feeds
-  FROM raw
+  FROM read_json(
+    's3://${LOGS_R2_BUCKET_NAME}/incident/**/*.json',
+    union_by_name=true,
+    ignore_errors=true
+  ) raw
   LEFT JOIN ip_threat_score t ON t.clientIP = raw.src_ip
-  ORDER BY raw.time_of_hit DESC
+  ORDER BY timestamp DESC
 ) TO 'sources/bcf_nw/incidents.parquet' (FORMAT PARQUET);
