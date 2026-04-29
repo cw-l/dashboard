@@ -64,25 +64,35 @@ SET s3_secret_access_key = '${TIF_R2_R_SECRET_KEY}';
 CREATE TEMP TABLE ip_threat_score AS
 WITH
     feed_abuseipdb AS (SELECT TRIM(column0) AS ip FROM read_csv('s3://${TIF_R2_BUCKET_NAME}/AbuseIPDB.txt', header=false, columns={column0: 'VARCHAR'})),
-    feed_emergingt AS (SELECT TRIM(column0) AS ip FROM read_csv('s3://${TIF_R2_BUCKET_NAME}/EmergingThreats.txt', header=false, columns={column0: 'VARCHAR'})),
+    feed_binarydefense AS (SELECT TRIM(column0) AS ip FROM read_csv('s3://${TIF_R2_BUCKET_NAME}/BinaryDefense.txt', header=false, columns={column0: 'VARCHAR'})),
     feed_blocklist AS (SELECT TRIM(column0) AS ip FROM read_csv('s3://${TIF_R2_BUCKET_NAME}/Blocklist.txt', header=false, columns={column0: 'VARCHAR'})),
-    feed_cinsarmy  AS (SELECT TRIM(column0) AS ip FROM read_csv('s3://${TIF_R2_BUCKET_NAME}/CINSArmyList.txt',  header=false, columns={column0: 'VARCHAR'}))
+    feed_cinsarmy  AS (SELECT TRIM(column0) AS ip FROM read_csv('s3://${TIF_R2_BUCKET_NAME}/CINSArmyList.txt',  header=false, columns={column0: 'VARCHAR'})),
+    feed_emergingt AS (SELECT TRIM(column0) AS ip FROM read_csv('s3://${TIF_R2_BUCKET_NAME}/EmergingThreats.txt', header=false, columns={column0: 'VARCHAR'})),
+    feed_spamhaus AS (
+        SELECT TRIM(column0) AS cidr
+        FROM read_csv('s3://${TIF_R2_BUCKET_NAME}/SpamhausDROP.txt', header=false, columns={column0: 'VARCHAR'})
+        WHERE TRIM(column0) != ''
+    )
 SELECT
     clientIP,
     (
         (clientIP IN (SELECT ip FROM feed_abuseipdb))::INTEGER +
-        (clientIP IN (SELECT ip FROM feed_emergingt))::INTEGER +
+        (clientIP IN (SELECT ip FROM feed_binarydefense))::INTEGER +
         (clientIP IN (SELECT ip FROM feed_blocklist))::INTEGER +
         (clientIP IN (SELECT ip FROM feed_cinsarmy))::INTEGER +
+        (clientIP IN (SELECT ip FROM feed_emergingt))::INTEGER +
         (e.threat IS NOT NULL)::INTEGER +
+        (EXISTS (SELECT 1 FROM feed_spamhaus WHERE e.clientIP::INET <<= cidr::INET))::INTEGER +
         (clientIP IN (SELECT clientIP FROM confirmed_attackers))::INTEGER  -- BCFS
     ) AS threat_score,
     NULLIF(ARRAY_TO_STRING(LIST_FILTER([
         CASE WHEN clientIP IN (SELECT ip FROM feed_abuseipdb) THEN 'AbuseIPDB'       END,
-        CASE WHEN clientIP IN (SELECT ip FROM feed_emergingt) THEN 'EmergingThreats' END,
+        CASE WHEN clientIP IN (SELECT ip FROM feed_binarydefense) THEN 'BinaryDefense'       END,
         CASE WHEN clientIP IN (SELECT ip FROM feed_blocklist) THEN 'Blocklist'       END,
         CASE WHEN clientIP IN (SELECT ip FROM feed_cinsarmy)  THEN 'CINSArmyList'    END,
+        CASE WHEN clientIP IN (SELECT ip FROM feed_emergingt) THEN 'EmergingThreats' END,
         CASE WHEN e.threat IS NOT NULL THEN 'IP2Location'                            END,
+        CASE WHEN EXISTS (SELECT 1 FROM feed_spamhaus WHERE e.clientIP::INET <<= cidr::INET) THEN 'SpamhausDROP' END,
         CASE WHEN clientIP IN (SELECT clientIP FROM confirmed_attackers) THEN 'BCFS' END
     ], x -> x IS NOT NULL), ' | '), '') AS matched_feeds
 FROM (
