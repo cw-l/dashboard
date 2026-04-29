@@ -10,8 +10,13 @@
 	<slot slot="content" />
 </EvidenceDefaultLayout>
 
-<footer style="display: flex; justify-content: center; gap: 1rem; font-size: 0.8rem; opacity: 0.7; margin-top: 2rem;">
-	<LastRefreshed />
-	<span>|</span>
-	<span>© {new Date().getFullYear()} BCF Security</span>
+<footer style="display: flex; flex-direction: column; align-items: center; gap: 0.1rem; font-size: 0.8rem; opacity: 0.7; margin-top: 2rem;">
+    <div style="display: flex; gap: 1rem;">
+        <LastRefreshed />
+        <span>|</span>
+        <span><a href="/credits">Credits</a></span>
+        <span>|</span>
+        <span><a href="/disclaimer">Disclaimer</a></span>
+    </div>
+    <div>© {new Date().getFullYear()} BCF Security. All rights reserved.</div>
 </footer>

@@ -2,12 +2,6 @@
 title: WAF 
 ---
 
-> This dashboard uses the Cloudflare firewallEventsAdaptive dataset from multiple Zones.
-
-> ⚠️ **Disclaimer:** Data is provided as-is without warranty or guarantee of accuracy. Users should exercise caution when interpreting and acting on this information. If you use or reference this data, please attribute back to the original source.
-
-> This site uses the IP2Location LITE database for <a href="https://www.ip2location.com" target="_blank">IP geolocation</a>.
-
 
 ```sql fw_actions
 SELECT
