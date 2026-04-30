@@ -2,13 +2,19 @@
 title: BCF Security 
 ---
 
-Choose a perspective below:
+
+Select a dashboard to get started:
 
 ### [🌐 HTTP Traffic Dashboard](/http_dashboard)
-Monitor request volume, status codes, and user performance. Use this for capacity planning and site health.
+Analyze request origins, client profiles, and traffic patterns across all monitored zones.
 
 ### [🛡️ WAF & Security Dashboard](/waf_dashboard)
-Analyze threats, blocked IPs, and firewall rule matches. Use this for incident response and threat hunting.
+Analyze blocked and challenged requests — origins, client profiles, and firewall rule matches across all monitored zones.
 
 ### [🔍 Threat Intelligence Dashboard](/threat_dashboard)
-Cross-reference live traffic against threat feeds and proxy intelligence. Use this for attacker profiling and network-level threat analysis.
+Correlate live traffic against threat intelligence feeds, with confirmed incidents and attacker consensus scoring.
+
+---
+
+### 🔒 Members Access
+Watch this space.

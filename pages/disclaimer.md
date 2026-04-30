@@ -4,6 +4,10 @@ sidebar_link: false
 ---
 
 
+## Purpose
+
+Data is collected solely for security monitoring and threat intelligence purposes, representing IPs and indicators flagged for malicious or suspicious activity.
+
 Data is aggregated from third-party threat intelligence feeds and first-party security telemetry. It is provided as-is, without warranty or guarantee of accuracy or timeliness.
 
 Threat intelligence is inherently time-sensitive. BCF Security makes no representations as to the current validity of any flagged IP, domain, or threat indicator.

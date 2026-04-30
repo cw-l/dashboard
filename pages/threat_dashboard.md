@@ -3,20 +3,6 @@ title: Threat Intel
 ---
 
 
-```sql usage_types
-SELECT
-  threat_score, matched_feeds,
-  usage_type, ipDomain AS ip_domain, isp, 
-  isoCountryName AS country, region, city, as_name AS asn,
-  COUNT(*) AS hit_count
-FROM bcf_nw.http
-WHERE 
-  usage_type IN ('GOV', 'EDU', 'ORG', 'COM', 'MIL', 'LIB', 'MOB', 'ISP')
-  AND threat_score > 0
-GROUP BY ALL
-ORDER BY threat_score DESC, hit_count DESC
-```
-
 ```sql threats
 SELECT 
   datetime AS timestamp, clientRequestPath AS path, 
@@ -63,7 +49,3 @@ Raw request log from threat-flagged IPs: shows exact paths and query strings bei
 ## Flagged Attackers by Threat Intelligence Consensus
 All flagged attacker IPs ranked by threat intelligence consensus and request volume.
 <DataTable data={suspicious_ips}/>
-
-## Threat Activity from Legitimate Networks
-Suspicious IPs from legitimate networks: residential, mobile, institutional, that have been flagged by one or more threat intelligence feeds.
-<DataTable data={usage_types}/>

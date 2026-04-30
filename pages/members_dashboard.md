@@ -3,6 +3,54 @@ title: Members
 ---
 
 
+```sql incident_type
+SELECT
+    token_type AS incident_type,
+    REGEXP_REPLACE(src_ip, '(\\d+)\\.(\\d+)\\.\\d+\\.\\d+', '\\1.\\2.x.x') AS attacker,
+    threat_score,
+    matched_feeds,
+    strftime(MIN(timestamp), '%Y-%m-%d %H:%M:%S') AS first_seen,
+    strftime(MAX(timestamp), '%Y-%m-%d %H:%M:%S') AS last_seen,
+    CASE
+        WHEN DATEDIFF('second', MIN(timestamp), MAX(timestamp)) < 1
+            THEN DATEDIFF('millisecond', MIN(timestamp), MAX(timestamp))::VARCHAR || 'ms'
+        WHEN DATEDIFF('second', MIN(timestamp), MAX(timestamp)) < 60
+            THEN DATEDIFF('second', MIN(timestamp), MAX(timestamp))::VARCHAR || 's'
+        WHEN DATEDIFF('minute', MIN(timestamp), MAX(timestamp)) < 60
+            THEN DATEDIFF('minute', MIN(timestamp), MAX(timestamp))::VARCHAR || 'm'
+        WHEN DATEDIFF('hour', MIN(timestamp), MAX(timestamp)) < 24
+            THEN DATEDIFF('hour', MIN(timestamp), MAX(timestamp))::VARCHAR || 'h'
+        ELSE
+            DATEDIFF('day', MIN(timestamp), MAX(timestamp))::VARCHAR || 'd'
+    END AS active_duration,
+    LIST(DISTINCT city) AS cities,
+    LIST(DISTINCT network_type) AS network_types,
+    LIST(DISTINCT asn_name) AS asn_names,
+    BOOL_OR(is_tor_relay) AS any_tor
+FROM bcf_nw.incidents
+GROUP BY token, token_type, attacker, threat_score, matched_feeds
+ORDER BY incident_type ASC, first_seen ASC, attacker ASC;
+```
+
+```sql attackers
+SELECT
+    REGEXP_REPLACE(src_ip, '(\\d+)\\.(\\d+)\\.\\d+\\.\\d+', '\\1.\\2.x.x') AS attacker,
+    threat_score,
+    matched_feeds,
+    useragent,
+    country,
+    region,
+    city,
+    asn_name,
+    network_type
+FROM (
+    SELECT *, ROW_NUMBER() OVER (PARTITION BY src_ip ORDER BY timestamp DESC) AS rn
+    FROM bcf_nw.incidents
+)
+WHERE rn = 1
+ORDER BY threat_score DESC
+```
+
 ```sql attack_path
 SELECT
     REGEXP_REPLACE(src_ip, '(\\d+)\\.(\\d+)\\.\\d+\\.\\d+', '\\1.\\2.x.x') AS attacker,
@@ -31,35 +79,6 @@ SELECT
 FROM bcf_nw.incidents
 GROUP BY attacker, token, token_type, threat_score, matched_feeds
 ORDER BY first_seen ASC;
-```
-
-```sql incident_type
-SELECT
-    token_type AS incident_type,
-    REGEXP_REPLACE(src_ip, '(\\d+)\\.(\\d+)\\.\\d+\\.\\d+', '\\1.\\2.x.x') AS attacker,
-    threat_score,
-    matched_feeds,
-    strftime(MIN(timestamp), '%Y-%m-%d %H:%M:%S') AS first_seen,
-    strftime(MAX(timestamp), '%Y-%m-%d %H:%M:%S') AS last_seen,
-    CASE
-        WHEN DATEDIFF('second', MIN(timestamp), MAX(timestamp)) < 1
-            THEN DATEDIFF('millisecond', MIN(timestamp), MAX(timestamp))::VARCHAR || 'ms'
-        WHEN DATEDIFF('second', MIN(timestamp), MAX(timestamp)) < 60
-            THEN DATEDIFF('second', MIN(timestamp), MAX(timestamp))::VARCHAR || 's'
-        WHEN DATEDIFF('minute', MIN(timestamp), MAX(timestamp)) < 60
-            THEN DATEDIFF('minute', MIN(timestamp), MAX(timestamp))::VARCHAR || 'm'
-        WHEN DATEDIFF('hour', MIN(timestamp), MAX(timestamp)) < 24
-            THEN DATEDIFF('hour', MIN(timestamp), MAX(timestamp))::VARCHAR || 'h'
-        ELSE
-            DATEDIFF('day', MIN(timestamp), MAX(timestamp))::VARCHAR || 'd'
-    END AS active_duration,
-    LIST(DISTINCT city) AS cities,
-    LIST(DISTINCT network_type) AS network_types,
-    LIST(DISTINCT asn_name) AS asn_names,
-    BOOL_OR(is_tor_relay) AS any_tor
-FROM bcf_nw.incidents
-GROUP BY token, token_type, attacker, threat_score, matched_feeds
-ORDER BY incident_type ASC, first_seen ASC, attacker ASC;
 ```
 
 ```sql high_entropy
@@ -116,11 +135,14 @@ ORDER BY unique_bot_count DESC, entropy DESC;
 ```
 
 
-## Attack Path
-<DataTable data={attack_path}/>
-
 ## Incident Type
 <DataTable data={incident_type}/>
+
+## Attackers
+<DataTable data={attackers}/>
+
+## Attack Path
+<DataTable data={attack_path}/>
 
 ## High Entropy Path
 <DataTable data={high_entropy}/>
