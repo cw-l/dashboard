@@ -3,35 +3,6 @@ title: Members
 ---
 
 
-```sql incident_type
-SELECT
-    token_type AS incident_type,
-    REGEXP_REPLACE(src_ip, '(\\d+)\\.(\\d+)\\.\\d+\\.\\d+', '\\1.\\2.x.x') AS attacker,
-    threat_score,
-    matched_feeds,
-    strftime(MIN(timestamp), '%Y-%m-%d %H:%M:%S') AS first_seen,
-    strftime(MAX(timestamp), '%Y-%m-%d %H:%M:%S') AS last_seen,
-    CASE
-        WHEN DATEDIFF('second', MIN(timestamp), MAX(timestamp)) < 1
-            THEN DATEDIFF('millisecond', MIN(timestamp), MAX(timestamp))::VARCHAR || 'ms'
-        WHEN DATEDIFF('second', MIN(timestamp), MAX(timestamp)) < 60
-            THEN DATEDIFF('second', MIN(timestamp), MAX(timestamp))::VARCHAR || 's'
-        WHEN DATEDIFF('minute', MIN(timestamp), MAX(timestamp)) < 60
-            THEN DATEDIFF('minute', MIN(timestamp), MAX(timestamp))::VARCHAR || 'm'
-        WHEN DATEDIFF('hour', MIN(timestamp), MAX(timestamp)) < 24
-            THEN DATEDIFF('hour', MIN(timestamp), MAX(timestamp))::VARCHAR || 'h'
-        ELSE
-            DATEDIFF('day', MIN(timestamp), MAX(timestamp))::VARCHAR || 'd'
-    END AS active_duration,
-    LIST(DISTINCT city) AS cities,
-    LIST(DISTINCT network_type) AS network_types,
-    LIST(DISTINCT asn_name) AS asn_names,
-    BOOL_OR(is_tor_relay) AS any_tor
-FROM bcf_nw.incidents
-GROUP BY token, token_type, attacker, threat_score, matched_feeds
-ORDER BY incident_type ASC, first_seen ASC, attacker ASC;
-```
-
 ```sql attackers
 SELECT
     REGEXP_REPLACE(src_ip, '(\\d+)\\.(\\d+)\\.\\d+\\.\\d+', '\\1.\\2.x.x') AS attacker,
@@ -51,33 +22,58 @@ WHERE rn = 1
 ORDER BY threat_score DESC
 ```
 
-```sql attack_path
+```sql incidents_summary
 SELECT
-    REGEXP_REPLACE(src_ip, '(\\d+)\\.(\\d+)\\.\\d+\\.\\d+', '\\1.\\2.x.x') AS attacker,
-    token_type AS incident_type,
-    threat_score,
-    matched_feeds,
+    COALESCE(
+        MAX(CASE 
+            WHEN token_type = 'aws_keys' THEN 'Compromised AWS API Key'
+            WHEN token_type = 'wireguard' THEN 'Compromised Wireguard VPN Client Config'
+        END),
+        'UC'
+    ) AS incident_type,
     strftime(MIN(timestamp), '%Y-%m-%d %H:%M:%S') AS first_seen,
     strftime(MAX(timestamp), '%Y-%m-%d %H:%M:%S') AS last_seen,
     CASE
-        WHEN DATEDIFF('second', MIN(timestamp), MAX(timestamp)) < 1
-            THEN DATEDIFF('millisecond', MIN(timestamp), MAX(timestamp))::VARCHAR || 'ms'
-        WHEN DATEDIFF('second', MIN(timestamp), MAX(timestamp)) < 60
-            THEN DATEDIFF('second', MIN(timestamp), MAX(timestamp))::VARCHAR || 's'
-        WHEN DATEDIFF('minute', MIN(timestamp), MAX(timestamp)) < 60
-            THEN DATEDIFF('minute', MIN(timestamp), MAX(timestamp))::VARCHAR || 'm'
-        WHEN DATEDIFF('hour', MIN(timestamp), MAX(timestamp)) < 24
-            THEN DATEDIFF('hour', MIN(timestamp), MAX(timestamp))::VARCHAR || 'h'
+        WHEN date_diff('second', MIN(timestamp), MAX(timestamp)) < 1
+            THEN date_diff('millisecond', MIN(timestamp), MAX(timestamp))::VARCHAR || 'ms'
+        WHEN date_diff('second', MIN(timestamp), MAX(timestamp)) < 60
+            THEN date_diff('second', MIN(timestamp), MAX(timestamp))::VARCHAR || 's'
+        WHEN date_diff('minute', MIN(timestamp), MAX(timestamp)) < 60
+            THEN date_diff('minute', MIN(timestamp), MAX(timestamp))::VARCHAR || 'm'
+        WHEN date_diff('hour', MIN(timestamp), MAX(timestamp)) < 24
+            THEN date_diff('hour', MIN(timestamp), MAX(timestamp))::VARCHAR || 'h'
         ELSE
-            DATEDIFF('day', MIN(timestamp), MAX(timestamp))::VARCHAR || 'd'
-    END AS active_duration,
-    LIST(aws_events ORDER BY timestamp ASC) AS attack_sequence,
-    LIST(DISTINCT city) AS cities,
-    LIST(DISTINCT network_type) AS network_types,
-    LIST(DISTINCT asn_name) AS asn_names,
-    BOOL_OR(is_tor_relay) AS any_tor
+            date_diff('day', MIN(timestamp), MAX(timestamp))::VARCHAR || 'd'
+    END AS active_duration
 FROM bcf_nw.incidents
-GROUP BY attacker, token, token_type, threat_score, matched_feeds
+GROUP BY token
+ORDER BY first_seen ASC;
+```
+
+```sql aws_api_key_1_attack_chain
+SELECT
+    REGEXP_REPLACE(i.src_ip, '(\\d+)\\.(\\d+)\\.\\d+\\.\\d+', '\\1.\\2.x.x') AS attacker,
+    COALESCE(MAX(CASE WHEN h.clientRequestPath = '/robots.txt' THEN '✓' END), '✗') AS via_robots_txt,
+    COALESCE(MAX(CASE WHEN h.clientRequestPath = '/nguyen/nguyen_aws_creds_bak' THEN '✓' END), '✗') AS via_direct_path,
+    strftime(MIN(i.timestamp), '%Y-%m-%d %H:%M:%S') AS first_seen,
+    strftime(MAX(i.timestamp), '%Y-%m-%d %H:%M:%S') AS last_seen,
+    CASE
+        WHEN DATEDIFF('second', MIN(i.timestamp), MAX(i.timestamp)) < 1
+            THEN DATEDIFF('millisecond', MIN(i.timestamp), MAX(i.timestamp))::VARCHAR || 'ms'
+        WHEN DATEDIFF('second', MIN(i.timestamp), MAX(i.timestamp)) < 60
+            THEN DATEDIFF('second', MIN(i.timestamp), MAX(i.timestamp))::VARCHAR || 's'
+        WHEN DATEDIFF('minute', MIN(i.timestamp), MAX(i.timestamp)) < 60
+            THEN DATEDIFF('minute', MIN(i.timestamp), MAX(i.timestamp))::VARCHAR || 'm'
+        WHEN DATEDIFF('hour', MIN(i.timestamp), MAX(i.timestamp)) < 24
+            THEN DATEDIFF('hour', MIN(i.timestamp), MAX(i.timestamp))::VARCHAR || 'h'
+        ELSE
+            DATEDIFF('day', MIN(i.timestamp), MAX(i.timestamp))::VARCHAR || 'd'
+    END AS active_duration,
+    LIST(i.aws_events ORDER BY i.timestamp ASC) AS attack_sequence
+FROM bcf_nw.incidents i
+LEFT JOIN bcf_nw.http h ON h.clientIP = i.src_ip
+WHERE i.token = 'su6lxwiw15qy6gylx0s0323j1'
+GROUP BY i.token, attacker
 ORDER BY first_seen ASC;
 ```
 
@@ -135,14 +131,14 @@ ORDER BY unique_bot_count DESC, entropy DESC;
 ```
 
 
-## Incident Type
-<DataTable data={incident_type}/>
-
 ## Attackers
 <DataTable data={attackers}/>
 
-## Attack Path
-<DataTable data={attack_path}/>
+## Incidents
+<DataTable data={incidents_summary}/>
+
+## Attack Chain - AWS Token Compromise
+<DataTable data={aws_api_key_1_attack_chain}/>
 
 ## High Entropy Path
 <DataTable data={high_entropy}/>
