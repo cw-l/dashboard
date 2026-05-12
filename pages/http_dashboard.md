@@ -5,84 +5,46 @@ title: HTTP
 
 ```sql top_countries
 SELECT 
-  isoCountryName AS country,
+  country_name AS country,
   COUNT(*) as total
 FROM bcf_nw.http
-WHERE isoCountryName IS NOT NULL
-GROUP BY isoCountryName
+WHERE country_name IS NOT NULL
+GROUP BY country_name
 ORDER BY total DESC
 LIMIT 10
 ```
 ```sql bottom_countries
 SELECT 
-  isoCountryName AS country,
+  country_name AS country,
   COUNT(*) as total
 FROM bcf_nw.http
-WHERE isoCountryName IS NOT NULL
-GROUP BY isoCountryName
+WHERE country_name IS NOT NULL
+GROUP BY country_name
 ORDER BY total ASC
 LIMIT 10
 ```
-```sql top_cities
-SELECT 
-  city,
-  COUNT(*) as total
-FROM bcf_nw.http
-WHERE city IS NOT NULL
-GROUP BY city
-ORDER BY total DESC
-LIMIT 10
-```
-```sql bottom_cities
-SELECT 
-  city,
-  COUNT(*) as total
-FROM bcf_nw.http
-WHERE city IS NOT NULL
-GROUP BY city
-ORDER BY total ASC
-LIMIT 10
-```
+
 ```sql top_asn
 SELECT 
-  clientAsnName AS asn,
+  clientASNDescription AS asn,
   COUNT(*) as total
 FROM bcf_nw.http
-WHERE clientAsnName IS NOT NULL
-GROUP BY clientAsnName
+WHERE clientASNDescription IS NOT NULL
+GROUP BY clientASNDescription
 ORDER BY total DESC
 LIMIT 10
 ```
 ```sql bottom_asn
 SELECT 
-  clientAsnName AS asn,
+  clientASNDescription AS asn,
   COUNT(*) as total
 FROM bcf_nw.http
-WHERE clientAsnName IS NOT NULL
-GROUP BY clientAsnName
+WHERE clientASNDescription IS NOT NULL
+GROUP BY clientASNDescription
 ORDER BY total ASC
 LIMIT 10
 ```
-```sql top_isp
-SELECT 
-  isp,
-  COUNT(*) as total
-FROM bcf_nw.http
-WHERE isp IS NOT NULL
-GROUP BY isp
-ORDER BY total DESC
-LIMIT 10
-```
-```sql bottom_isp
-SELECT 
-  isp,
-  COUNT(*) as total
-FROM bcf_nw.http
-WHERE isp IS NOT NULL
-GROUP BY isp
-ORDER BY total ASC
-LIMIT 10
-```
+
 ```sql ua_os
 SELECT uaOS AS os, COUNT(*) AS total
 FROM bcf_nw.http
@@ -104,6 +66,7 @@ WHERE uaBrowser IS NOT NULL
 GROUP BY uaBrowser
 ORDER BY total DESC
 ```
+
 ```sql top_paths
 SELECT 
   clientRequestPath AS path,
@@ -136,6 +99,7 @@ GROUP BY clientRequestPath
 ORDER BY total DESC
 LIMIT 10
 ```
+
 ```sql http_methods
 SELECT
   clientRequestHTTPMethodName AS http_method_name,
@@ -174,33 +138,6 @@ WHERE datetime IS NOT NULL
 GROUP BY hour
 ORDER BY hour ASC
 ```
-```sql usage_type
-SELECT
-  usage_type,
-  COUNT(*) AS total
-FROM bcf_nw.http
-WHERE usage_type IS NOT NULL
-GROUP BY usage_type
-ORDER BY total DESC
-```
-```sql unique_ips_by_usage_type
-SELECT
-  usage_type,
-  COUNT(DISTINCT clientIP) AS unique_ips
-FROM bcf_nw.http
-WHERE usage_type IS NOT NULL
-GROUP BY usage_type
-ORDER BY unique_ips DESC
-```
-```sql int_domain_name_assoc_ip_range
-SELECT
-  ipDomain,
-  COUNT(*) AS total
-FROM bcf_nw.http
-WHERE ipDomain IS NOT NULL
-GROUP BY ipDomain
-ORDER BY ipDomain DESC
-```
 
 
 ## Top 10 Countries
@@ -219,22 +156,6 @@ ORDER BY ipDomain DESC
   swapXY=true
 />
 
-## Top 10 Cities
-<BarChart 
-  data={top_cities} 
-  x=city 
-  y=total
-  swapXY=true
-/>
-
-## Bottom 10 Cities
-<BarChart 
-  data={bottom_cities} 
-  x=city 
-  y=total 
-  swapXY=true
-/>
-
 ## Top 10 ASNs
 <BarChart 
   data={top_asn} 
@@ -248,22 +169,6 @@ ORDER BY ipDomain DESC
   data={bottom_asn} 
   x=asn 
   y=total 
-  swapXY=true
-/>
-
-## Top 10 ISPs
-<BarChart 
-  data={top_isp} 
-  x=isp 
-  y=total
-  swapXY=true
-/>
-
-## Bottom 10 ISPs
-<BarChart 
-  data={bottom_isp} 
-  x=isp 
-  y=total
   swapXY=true
 />
 
@@ -344,36 +249,3 @@ ORDER BY ipDomain DESC
   x=hour 
   y=unique_ips
 />
-
-## Usage Types
-<ECharts config={
-  {
-    tooltip: { trigger: 'item' },
-    series: [{
-      type: 'pie',
-      data: usage_type.map(d => ({ name: d.usage_type, value: d.total }))
-    }]
-  }
-}/>
-
-## Unique IPs by Usage Type
-<ECharts config={
-  {
-    tooltip: { trigger: 'item' },
-    series: [{
-      type: 'pie',
-      data: unique_ips_by_usage_type.map(d => ({ name: d.usage_type, value: d.unique_ips }))
-    }]
-  }
-}/>
-
-## Internet Domain Name Associated with IP Range
-<ECharts config={
-  {
-    tooltip: { trigger: 'item' },
-    series: [{
-      type: 'pie',
-      data: int_domain_name_assoc_ip_range.map(d => ({ name: d.ipDomain, value: d.total }))
-    }]
-  }
-}/>

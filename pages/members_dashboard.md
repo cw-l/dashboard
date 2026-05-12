@@ -118,8 +118,9 @@ SELECT
     --COUNT(*) AS total_hit_count,
     COUNT(DISTINCT i.clientIP) AS unique_bot_count,
     STRING_AGG(DISTINCT i.edgeResponseStatus::INTEGER::VARCHAR, ', ') AS response_codes,
-    LIST(DISTINCT REGEXP_REPLACE(i.clientIP, '(\\d+)\\.(\\d+)\\.\\d+\\.\\d+', '\\1.\\2.x.x')) AS attackers,    
-    LIST(DISTINCT i.as_name) FILTER (WHERE i.as_name IS NOT NULL AND i.as_name != '') AS providers,
+    LIST(DISTINCT REGEXP_REPLACE(i.clientIP, '(\\d+)\\.(\\d+)\\.\\d+\\.\\d+', '\\1.\\2.x.x')) AS attackers,
+    --LIST(DISTINCT i.clientIP) AS attackers, 
+    LIST(DISTINCT i.clientASNDescription) FILTER (WHERE i.clientASNDescription IS NOT NULL AND i.clientASNDescription != '') AS as_name,
     strftime(MIN(i.datetime), '%Y-%m-%d %H:%M:%S') AS first_seen,
     strftime(MAX(i.datetime), '%Y-%m-%d %H:%M:%S') AS last_seen,
 FROM bcf_nw.http i

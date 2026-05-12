@@ -8,11 +8,10 @@ sidebar_link: false
 
 This dashboard is powered by the following third-party data sources. We gratefully acknowledge their contribution to the security community.
 
----
 
-## IP Geolocation & Proxy Intelligence
-
-This site uses the IP2Location LITE database for <a href="https://www.ip2location.com" target="_blank">IP geolocation</a>.
+| Purpose           | Provider                                  |
+| ----------------- | ----------------------------------------- |
+| Country Code-Name | DataHub [datahub.io](https://datahub.io/) |
 
 ---
 

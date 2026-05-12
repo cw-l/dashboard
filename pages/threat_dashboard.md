@@ -48,20 +48,20 @@ SELECT
         ELSE
             DATEDIFF('day', MIN(i.timestamp), MAX(i.timestamp))::VARCHAR || 'd'
     END AS active_duration,
+    i.country,
     i.city, 
     i.asn_name
 FROM bcf_nw.incidents i
 LEFT JOIN bcf_nw.http h ON h.clientIP = i.src_ip
 WHERE i.token = 'su6lxwiw15qy6gylx0s0323j1'
-GROUP BY i.token, i.src_ip, i.city, i.asn_name
+GROUP BY i.token, i.src_ip, i.country, i.city, i.asn_name
 ORDER BY first_seen ASC;
 LIMIT 10
 ```
 
 ```sql consensus_threat_indicators
 SELECT
-  threat_score, matched_feeds, COUNT(*) AS hits, usage_type, 
-  isp, isoCountryName AS country, region, city
+  threat_score, matched_feeds, COUNT(*) AS hits, country_name AS country
 FROM bcf_nw.http
 WHERE 
   threat_score > 0
@@ -72,16 +72,38 @@ LIMIT 10
 
 ```sql suspicious_requests
 SELECT 
-  datetime AS timestamp, clientRequestPath AS path, 
+  strftime(datetime, '%Y-%m-%d %H:%M:%S') AS datetime,
+  clientRequestPath AS path, 
   clientRequestQuery AS query, threat_score, matched_feeds,
-  usage_type, isoCountryName AS country, region, city
+  country_name AS country
 FROM bcf_nw.http
 WHERE threat_score > 0
 ORDER BY threat_score DESC
 LIMIT 10
 ```
 
-Providing real-time visibility into high-confidence, actionable threat indicators. This public view is limited to 10 records. Members [Coming Soon] will have access to expanded datasets.
+```sql unknown_ua
+SELECT 
+    userAgent AS user_agent,
+    uaBrowser AS browser,
+    uaOS AS operating_system,
+    uaDevice AS device_type,
+    NULLIF(ARRAY_TO_STRING(LIST_FILTER([
+        CASE WHEN uaBrowser = 'Unknown' THEN 'browser' END,
+        CASE WHEN uaOS = 'Unknown' THEN 'os' END,
+        CASE WHEN uaDevice = 'Unknown' THEN 'device' END
+    ], x -> x IS NOT NULL), ', '), '') AS unknown_fields
+FROM bcf_nw.http
+WHERE uaBrowser = 'Unknown' OR uaOS = 'Unknown' OR uaDevice = 'Unknown'
+LIMIT 10
+```
+
+
+Providing real-time visibility into high-confidence, actionable threat indicators. This public view is limited to 10 records. 
+
+Members [Coming Soon] will have access to expanded datasets.
+
+
 
 ## Incidents Summary
 <DataTable data={incidents_summary}/>
@@ -96,3 +118,6 @@ Based on multi-feed reputation and observed activity.
 ## Suspicious Requests
 Request paths and query strings being probed.
 <DataTable data={suspicious_requests}/>
+
+## Unknown User Agents
+<DataTable data={unknown_ua}/>
