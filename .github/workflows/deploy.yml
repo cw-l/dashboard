@@ -46,6 +46,7 @@ jobs:
           TIF_R2_BUCKET_NAME: ${{ secrets.TIF_R2_BUCKET_NAME }}
           TIF_R2_R_ACCESS_KEY: ${{ secrets.TIF_R2_R_ACCESS_KEY }}
           TIF_R2_R_SECRET_KEY: ${{ secrets.TIF_R2_R_SECRET_KEY }}
+          EXCLUDED_IPS: ${{ secrets.EXCLUDED_IPS }}
         run: |
           chmod +x ingest.sh
           ./ingest.sh
