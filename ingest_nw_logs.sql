@@ -19,6 +19,9 @@ SET s3_use_ssl = true;
 CREATE TEMP TABLE excluded_ips AS
 SELECT TRIM(UNNEST(STRING_SPLIT('${EXCLUDED_IPS}', ','))) AS clientIP;
 
+CREATE TEMP TABLE excluded_paths AS
+SELECT TRIM(UNNEST(STRING_SPLIT('${EXCLUDED_PATHS}', ','))) AS path_prefix;
+
 CREATE TEMP TABLE all_ips AS
 WITH regular_ips AS (
     SELECT DISTINCT clientIP
@@ -153,6 +156,10 @@ COPY (
   FROM (
     SELECT * FROM read_json_auto('s3://${LOGS_R2_BUCKET_NAME}/firewall/**/*.json', union_by_name=true, ignore_errors=true)
     WHERE clientIP NOT IN (SELECT clientIP FROM excluded_ips)
+    AND NOT EXISTS (
+        SELECT 1 FROM excluded_paths
+        WHERE clientRequestPath LIKE path_prefix || '%'
+    )
     QUALIFY ROW_NUMBER() OVER (
         PARTITION BY zone, clientAsn, clientASNDescription, clientCountryName, clientIP, clientIPClass, 
             clientRefererHost, clientRequestHTTPMethodName, clientRequestHTTPProtocol, clientRequestPath,
@@ -224,6 +231,10 @@ COPY (
   FROM (
     SELECT * FROM read_json_auto('s3://${LOGS_R2_BUCKET_NAME}/http/**/*.json', union_by_name=true, ignore_errors=true)
     WHERE clientIP NOT IN (SELECT clientIP FROM excluded_ips)
+    AND NOT EXISTS (
+        SELECT 1 FROM excluded_paths
+        WHERE clientRequestPath LIKE path_prefix || '%'
+    )
     QUALIFY ROW_NUMBER() OVER (
         PARTITION BY zone, clientAsn, clientASNDescription, clientCountryName, clientIP,
             clientRequestHTTPMethodName, clientRequestHTTPProtocol, clientRequestPath,
