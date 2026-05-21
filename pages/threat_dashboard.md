@@ -101,7 +101,7 @@ LIMIT 10
 
 Providing real-time visibility into high-confidence, actionable threat indicators. This public view is limited to 10 records. 
 
-Members [Coming Soon] will have access to expanded datasets.
+Members [Coming Soon] will have access to expanded datasets.<br/><br/>
 
 
 

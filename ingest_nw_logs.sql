@@ -158,7 +158,7 @@ COPY (
     WHERE clientIP NOT IN (SELECT clientIP FROM excluded_ips)
     AND NOT EXISTS (
         SELECT 1 FROM excluded_paths
-        WHERE clientRequestPath LIKE path_prefix || '%'
+        WHERE CONTAINS(clientRequestPath, path_prefix)
     )
     QUALIFY ROW_NUMBER() OVER (
         PARTITION BY zone, clientAsn, clientASNDescription, clientCountryName, clientIP, clientIPClass, 
@@ -233,7 +233,7 @@ COPY (
     WHERE clientIP NOT IN (SELECT clientIP FROM excluded_ips)
     AND NOT EXISTS (
         SELECT 1 FROM excluded_paths
-        WHERE clientRequestPath LIKE path_prefix || '%'
+        WHERE CONTAINS(clientRequestPath, path_prefix)
     )
     QUALIFY ROW_NUMBER() OVER (
         PARTITION BY zone, clientAsn, clientASNDescription, clientCountryName, clientIP,
