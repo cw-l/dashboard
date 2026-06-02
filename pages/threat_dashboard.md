@@ -8,6 +8,7 @@ SELECT
     COALESCE(
         MAX(CASE 
             WHEN token_type = 'aws_keys' THEN 'Compromised AWS API Key'
+            WHEN token_type = 'web' THEN 'Unauthorized Login Attempt'
             WHEN token_type = 'wireguard' THEN 'Compromised Wireguard VPN Client Config'
         END),
         'UC'
@@ -54,6 +55,33 @@ SELECT
 FROM bcf_nw.incidents i
 LEFT JOIN bcf_nw.http h ON h.clientIP = i.src_ip
 WHERE i.token = 'su6lxwiw15qy6gylx0s0323j1'
+GROUP BY i.token, i.src_ip, i.country, i.city, i.asn_name
+ORDER BY first_seen ASC;
+LIMIT 10
+```
+
+```sql unauth_login_incident
+SELECT
+    strftime(MIN(i.timestamp), '%Y-%m-%d %H:%M:%S') AS first_seen,
+    strftime(MAX(i.timestamp), '%Y-%m-%d %H:%M:%S') AS last_seen,
+    CASE
+        WHEN DATEDIFF('second', MIN(i.timestamp), MAX(i.timestamp)) < 1
+            THEN DATEDIFF('millisecond', MIN(i.timestamp), MAX(i.timestamp))::VARCHAR || 'ms'
+        WHEN DATEDIFF('second', MIN(i.timestamp), MAX(i.timestamp)) < 60
+            THEN DATEDIFF('second', MIN(i.timestamp), MAX(i.timestamp))::VARCHAR || 's'
+        WHEN DATEDIFF('minute', MIN(i.timestamp), MAX(i.timestamp)) < 60
+            THEN DATEDIFF('minute', MIN(i.timestamp), MAX(i.timestamp))::VARCHAR || 'm'
+        WHEN DATEDIFF('hour', MIN(i.timestamp), MAX(i.timestamp)) < 24
+            THEN DATEDIFF('hour', MIN(i.timestamp), MAX(i.timestamp))::VARCHAR || 'h'
+        ELSE
+            DATEDIFF('day', MIN(i.timestamp), MAX(i.timestamp))::VARCHAR || 'd'
+    END AS active_duration,
+    i.country,
+    i.city, 
+    i.asn_name
+FROM bcf_nw.incidents i
+LEFT JOIN bcf_nw.http h ON h.clientIP = i.src_ip
+WHERE i.token = '00qmdbpytt7ivpwtrjt8y23kz'
 GROUP BY i.token, i.src_ip, i.country, i.city, i.asn_name
 ORDER BY first_seen ASC;
 LIMIT 10
@@ -110,6 +138,9 @@ Members [Coming Soon] will have access to expanded datasets.<br/><br/>
 
 ## Incident Details - Compromised AWS API Key
 <DataTable data={aws_api_key__1_incident}/>
+
+## Incident Details - Unauthorised Login Attempt
+<DataTable data={unauth_login_incident}/>
 
 ## Consensus-Based Threat Indicators
 Based on multi-feed reputation and observed activity.

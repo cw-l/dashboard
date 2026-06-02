@@ -27,6 +27,7 @@ SELECT
     COALESCE(
         MAX(CASE 
             WHEN token_type = 'aws_keys' THEN 'Compromised AWS API Key'
+            WHEN token_type = 'web' THEN 'Unauthorized Login Attempt'
             WHEN token_type = 'wireguard' THEN 'Compromised Wireguard VPN Client Config'
         END),
         'UC'
@@ -73,6 +74,32 @@ SELECT
 FROM bcf_nw.incidents i
 LEFT JOIN bcf_nw.http h ON h.clientIP = i.src_ip
 WHERE i.token = 'su6lxwiw15qy6gylx0s0323j1'
+GROUP BY i.token, attacker
+ORDER BY first_seen ASC;
+```
+
+```sql unauth_login_attempt
+SELECT
+    REGEXP_REPLACE(i.src_ip, '(\\d+)\\.(\\d+)\\.\\d+\\.\\d+', '\\1.\\2.x.x') AS attacker,
+    COALESCE(MAX(CASE WHEN h.clientRequestPath = '/robots.txt' THEN '✓' END), '✗') AS via_robots_txt,
+    COALESCE(MAX(CASE WHEN h.clientRequestPath = '/x7k2-auth-failed.php' THEN '✓' END), '✗') AS via_direct_path,
+    strftime(MIN(i.timestamp), '%Y-%m-%d %H:%M:%S') AS first_seen,
+    strftime(MAX(i.timestamp), '%Y-%m-%d %H:%M:%S') AS last_seen,
+    CASE
+        WHEN DATEDIFF('second', MIN(i.timestamp), MAX(i.timestamp)) < 1
+            THEN DATEDIFF('millisecond', MIN(i.timestamp), MAX(i.timestamp))::VARCHAR || 'ms'
+        WHEN DATEDIFF('second', MIN(i.timestamp), MAX(i.timestamp)) < 60
+            THEN DATEDIFF('second', MIN(i.timestamp), MAX(i.timestamp))::VARCHAR || 's'
+        WHEN DATEDIFF('minute', MIN(i.timestamp), MAX(i.timestamp)) < 60
+            THEN DATEDIFF('minute', MIN(i.timestamp), MAX(i.timestamp))::VARCHAR || 'm'
+        WHEN DATEDIFF('hour', MIN(i.timestamp), MAX(i.timestamp)) < 24
+            THEN DATEDIFF('hour', MIN(i.timestamp), MAX(i.timestamp))::VARCHAR || 'h'
+        ELSE
+            DATEDIFF('day', MIN(i.timestamp), MAX(i.timestamp))::VARCHAR || 'd'
+    END AS active_duration
+FROM bcf_nw.incidents i
+LEFT JOIN bcf_nw.http h ON h.clientIP = i.src_ip
+WHERE i.token = '00qmdbpytt7ivpwtrjt8y23kz'
 GROUP BY i.token, attacker
 ORDER BY first_seen ASC;
 ```
@@ -140,6 +167,9 @@ ORDER BY unique_bot_count DESC, entropy DESC;
 
 ## Attack Chain - AWS Token Compromise
 <DataTable data={aws_api_key_1_attack_chain}/>
+
+## Attack Chain - Unauthorised Login Attempt
+<DataTable data={unauth_login_attempt}/>
 
 ## High Entropy Path
 <DataTable data={high_entropy}/>
