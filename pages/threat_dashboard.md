@@ -30,7 +30,7 @@ SELECT
     END AS active_duration
 FROM bcf_nw.incidents
 GROUP BY token
-ORDER BY first_seen ASC;
+ORDER BY first_seen ASC
 LIMIT 10
 ```
 
@@ -57,7 +57,7 @@ FROM bcf_nw.incidents i
 LEFT JOIN bcf_nw.http h ON h.clientIP = i.src_ip
 WHERE i.token = 'su6lxwiw15qy6gylx0s0323j1'
 GROUP BY i.token, i.src_ip, i.country, i.city, i.asn_name
-ORDER BY first_seen ASC;
+ORDER BY first_seen ASC
 LIMIT 10
 ```
 
@@ -84,7 +84,7 @@ FROM bcf_nw.incidents i
 LEFT JOIN bcf_nw.http h ON h.clientIP = i.src_ip
 WHERE i.token = '00qmdbpytt7ivpwtrjt8y23kz'
 GROUP BY i.token, i.src_ip, i.country, i.city, i.asn_name
-ORDER BY first_seen ASC;
+ORDER BY first_seen ASC
 LIMIT 10
 ```
 
@@ -111,7 +111,7 @@ FROM bcf_nw.incidents i
 LEFT JOIN bcf_nw.http h ON h.clientIP = i.src_ip
 WHERE i.token = '2w1h6h7fs567hyocym8z9hamg'
 GROUP BY i.token, i.src_ip, i.country, i.city, i.asn_name
-ORDER BY first_seen ASC;
+ORDER BY first_seen ASC
 LIMIT 10
 ```
 
